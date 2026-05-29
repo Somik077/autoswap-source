@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "autoswap",
+  "version": "1.0.0",
+  "name": "AutoSwap",
+  "description": "",
+  "authors": [
+    "Somik"
+  ],
+  "contact": {
+    "sources": "https://github.com/Somik077"
+  },
+  "license": "MIT",
+  "icon": "assets/autoswap/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "main": [
+      "org.funtown.autoswap.AutoSwapMod"
+    ],
+    "client": [
+      "org.funtown.autoswap.AutoSwapClient"
+    ],
+    "modmenu": [
+      "org.funtown.autoswap.ModMenuIntegration"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "fabric-api": "*",
+    "minecraft": "~1.21.4"
+  },
+  "suggests": {
+    "modmenu": "*"
+  }
+}

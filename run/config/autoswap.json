@@ -1,0 +1,27 @@
+{
+  "settings": {
+    "inventoryOpenDelayTicks": 1,
+    "swapCooldownMs": 300,
+    "showActionBar": true,
+    "language": "ru_ru"
+  },
+  "profiles": [
+    {
+      "name": "Default",
+      "entries": [
+        {
+          "label": "autoswap.entry.default_label",
+          "pairs": [
+            {
+              "itemId": "minecraft:totem_of_undying",
+              "itemId2": "minecraft:shield",
+              "targetSlot": "OFFHAND"
+            }
+          ],
+          "keyName": "key.keyboard.x"
+        }
+      ]
+    }
+  ],
+  "activeProfile": 0
+}
