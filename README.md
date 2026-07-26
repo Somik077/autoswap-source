@@ -33,7 +33,7 @@ keybinds — without needing to open your inventory repeatedly.
 - Fabric Loader 0.17.3
 - Fabric API
 - ModMenu
-- Minecraft 1.21.4, 1.21.8 or 1.21.11
+- Minecraft 1.21.4, 1.21.8
 
 [RU]
 # AutoSwap
@@ -70,4 +70,4 @@ keybinds — without needing to open your inventory repeatedly.
 - Fabric Loader 0.17.3
 - Fabric API
 - ModMenu
-- Minecraft 1.21.4, 1.21.8 или 1.21.11
+- Minecraft 1.21.4, 1.21.8
