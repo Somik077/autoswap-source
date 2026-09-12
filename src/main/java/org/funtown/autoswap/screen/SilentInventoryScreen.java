@@ -12,7 +12,7 @@ public class SilentInventoryScreen extends InventoryScreen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // invisible to the player
+        
     }
 
     @Override

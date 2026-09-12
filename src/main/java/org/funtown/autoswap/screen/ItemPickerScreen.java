@@ -109,7 +109,6 @@ public class ItemPickerScreen extends Screen {
         }
     }
 
-    
     @Override
     public boolean mouseClicked(Click click, boolean consumed) {
         if (super.mouseClicked(click, consumed)) return true;
@@ -137,7 +136,6 @@ public class ItemPickerScreen extends Screen {
         return true;
     }
 
-    
     @Override
     public boolean keyPressed(KeyInput input) {
         

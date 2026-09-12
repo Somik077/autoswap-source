@@ -8,7 +8,6 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.util.InputUtil;
 
-
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.input.KeyInput;
 import net.minecraft.text.Text;
@@ -103,7 +102,6 @@ public class AutoSwapConfigScreen extends Screen {
             ctx.drawCenteredTextWithShadow(textRenderer, ModTranslation.t("autoswap.screen.config.empty"), width/2, height/2-8, 0xFF666666);
     }
 
-    
     @Override
     public boolean mouseClicked(Click click, boolean consumed) {
         double mx = click.x(), my = click.y();
@@ -132,7 +130,6 @@ public class AutoSwapConfigScreen extends Screen {
         return super.mouseClicked(click, consumed);
     }
 
-    
     @Override
     public boolean keyPressed(KeyInput input) {
         if (keyBindTarget != null) {
@@ -154,15 +151,12 @@ public class AutoSwapConfigScreen extends Screen {
     @Override
     public void close() { AutoSwapConfig.save(); assert client != null; client.setScreen(parent); }
 
-    
-
     class SwapListWidget extends EntryListWidget<SwapListWidget.EntryRow> {
 
         SwapListWidget(MinecraftClient mc, int w, int h, int top, int itemH) {
             super(mc, w, h, top, itemH); reload();
         }
 
-        
         public void appendClickableNarrations(NarrationMessageBuilder b) {}
 
         void reload() {
@@ -195,7 +189,6 @@ public class AutoSwapConfigScreen extends Screen {
                 }).size(20, 20).build();
             }
 
-            
             @Override
             public void render(DrawContext ctx, int mouseX, int mouseY, boolean hov, float d) {
                 int x = getX(), ew = getWidth();
@@ -222,14 +215,12 @@ public class AutoSwapConfigScreen extends Screen {
                 keyBtn.render(ctx, mouseX, mouseY, d); editBtn.render(ctx, mouseX, mouseY, d); deleteBtn.render(ctx, mouseX, mouseY, d);
             }
 
-            
             @Override
             public boolean mouseClicked(Click click, boolean consumed) {
                 for (var c : children()) if (c.mouseClicked(click, consumed)) return true;
                 return false;
             }
 
-            
             public List<? extends net.minecraft.client.gui.Element> children() {
                 return List.of(keyBtn, editBtn, deleteBtn);
             }

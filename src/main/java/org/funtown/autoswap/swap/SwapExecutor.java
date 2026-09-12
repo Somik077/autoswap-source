@@ -30,7 +30,6 @@ public class SwapExecutor {
     private static boolean         screenOpened = false;
     private static boolean         wasSprinting = false;
 
-    // one click per tick: 1 = pickup source, 2 = place to target, 3 = drop cursor back
     private static int  step        = 0;
     private static int  src         = -1;
     private static int  dst         = -1;
@@ -64,7 +63,7 @@ public class SwapExecutor {
 
         switch (state) {
             case OPEN_SCREEN -> {
-                // reset sprint so the anticheat does not see inventory clicks while running
+                
                 wasSprinting = client.player.isSprinting();
                 client.player.setSprinting(false);
                 client.setScreen(new SilentInventoryScreen(client.player));
@@ -89,7 +88,7 @@ public class SwapExecutor {
             SwapPair pair = queue.poll();
             if (pair == null) { finish(client); return; }
             startPair(client, pair);
-            return; // first click fires on the next tick
+            return; 
         }
 
         PlayerScreenHandler handler = client.player.playerScreenHandler;
