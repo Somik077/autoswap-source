@@ -82,25 +82,24 @@ public class SettingsScreen extends Screen {
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        renderBackground(ctx, mouseX, mouseY, delta);
         super.render(ctx, mouseX, mouseY, delta);
 
         int cx = width / 2, y0 = height / 2 - 80, row = 38;
 
         ctx.drawCenteredTextWithShadow(textRenderer,
-                ModTranslation.t("autoswap.screen.settings.title"), cx, y0 - 10, 0xFFFFFF);
+                ModTranslation.t("autoswap.screen.settings.title"), cx, y0 - 10, 0xFFFFFFFF);
 
         
         ctx.drawCenteredTextWithShadow(textRenderer,
-                ModTranslation.t("autoswap.screen.settings.delay"), cx, y0 + 4, 0xAAAAAA);
+                ModTranslation.t("autoswap.screen.settings.delay"), cx, y0 + 4, 0xFFAAAAAA);
         ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.literal(s.inventoryOpenDelayTicks + " tick(s)"), cx, y0 + 20, 0xFFFFFF);
+                Text.literal(s.inventoryOpenDelayTicks + " tick(s)"), cx, y0 + 20, 0xFFFFFFFF);
 
         
         ctx.drawCenteredTextWithShadow(textRenderer,
-                ModTranslation.t("autoswap.screen.settings.cooldown"), cx, y0 + row + 4, 0xAAAAAA);
+                ModTranslation.t("autoswap.screen.settings.cooldown"), cx, y0 + row + 4, 0xFFAAAAAA);
         ctx.drawCenteredTextWithShadow(textRenderer,
-                Text.literal(s.swapCooldownMs + " ms"), cx, y0 + row + 20, 0xFFFFFF);
+                Text.literal(s.swapCooldownMs + " ms"), cx, y0 + row + 20, 0xFFFFFFFF);
     }
 
     @Override
