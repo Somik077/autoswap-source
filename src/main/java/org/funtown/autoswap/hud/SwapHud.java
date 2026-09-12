@@ -1,6 +1,5 @@
 package org.funtown.autoswap.hud;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -22,10 +21,12 @@ public class SwapHud {
     private static final int FADE_TICKS  = 20;
     private static final int TOTAL_TICKS = HOLD_TICKS + FADE_TICKS;
 
+    
+
     public static void showSuccess(List<ItemStack> icons, List<String> names) {
         entries.clear();
         for (int i = 0; i < Math.min(icons.size(), names.size()); i++) {
-            String text = (i == 0 ? "" : "") + names.get(i);
+            String text = (i == 0 ? "⚔ " : "") + names.get(i);
             entries.add(new Entry(icons.get(i), text, 0xFFFF55));
         }
         ticksLeft = TOTAL_TICKS;
@@ -56,12 +57,13 @@ public class SwapHud {
         TextRenderer tr      = client.textRenderer;
         int          screenW = context.getScaledWindowWidth();
         int          screenH = context.getScaledWindowHeight();
-        int          baseY   = screenH - 56;
+        int          baseY   = screenH - 49; 
         int          iconSize = 16;
         int          iconGap  = 3;
         String       sep      = "  |  ";
         int          sepW     = tr.getWidth(sep);
 
+        
         int totalW = 0;
         for (int i = 0; i < entries.size(); i++) {
             Entry e = entries.get(i);
@@ -76,17 +78,19 @@ public class SwapHud {
         for (int i = 0; i < entries.size(); i++) {
             Entry e = entries.get(i);
 
+            
+            
             if (!e.icon().isEmpty()) {
-                RenderSystem.setShaderColor(1f, 1f, 1f, alpha);
                 context.drawItem(e.icon(), x, iconY);
-                RenderSystem.setShaderColor(1f, 1f, 1f, 1f);
                 x += iconSize + iconGap;
             }
 
+            
             context.drawText(tr, e.text(), x, baseY,
                     (a << 24) | (e.rgb() & 0x00FFFFFF), true);
             x += tr.getWidth(e.text());
 
+            
             if (i < entries.size() - 1) {
                 context.drawText(tr, sep, x, baseY,
                         (a << 24) | 0x888888, true);

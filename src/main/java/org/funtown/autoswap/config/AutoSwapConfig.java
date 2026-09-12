@@ -17,21 +17,15 @@ public class AutoSwapConfig {
 
     private static AutoSwapConfig instance = createDefault();
 
-    
-
     public AutoSwapSettings settings     = new AutoSwapSettings();
     public java.util.List<Profile> profiles = new ArrayList<>();
     public int             activeProfile = 0;
-
-    
 
     private static AutoSwapConfig createDefault() {
         AutoSwapConfig c = new AutoSwapConfig();
         c.profiles.add(new Profile("Default"));
         return c;
     }
-
-    
 
     public static AutoSwapConfig getInstance() { return instance; }
 
@@ -44,8 +38,6 @@ public class AutoSwapConfig {
     public java.util.List<SwapEntry> getEntries() {
         return getActiveProfile().entries;
     }
-
-    
 
     public static void load() {
         File file = CONFIG_PATH.toFile();

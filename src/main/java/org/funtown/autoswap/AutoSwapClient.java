@@ -4,8 +4,9 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.Identifier;
 import org.funtown.autoswap.config.AutoSwapConfig;
 import org.funtown.autoswap.config.AutoSwapSettings;
 import org.funtown.autoswap.config.ModTranslation;
@@ -53,7 +54,7 @@ public class AutoSwapClient implements ClientModInitializer {
             if (!toFire.isEmpty()) SwapExecutor.schedule(toFire);
         });
 
-        HudRenderCallback.EVENT.register(SwapHud::render);
+        HudElementRegistry.addLast(Identifier.of(AutoSwapMod.MOD_ID, "swap_hud"), SwapHud::render);
     }
 
     private static String detectMcLanguage() {
