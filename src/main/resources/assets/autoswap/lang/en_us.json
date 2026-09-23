@@ -15,7 +15,7 @@
   "autoswap.screen.edit.empty":             "No pairs yet. Click \"+ Add Pair\".",
 
   "autoswap.screen.settings.title":        "AutoSwap — Settings",
-  "autoswap.screen.settings.delay":        "Inventory open delay",
+  "autoswap.screen.settings.delay":        "Delay between clicks",
   "autoswap.screen.settings.cooldown":     "Swap cooldown",
   "autoswap.screen.settings.actionbar_on": "⚔ ActionBar: ON",
   "autoswap.screen.settings.actionbar_off":"⚔ ActionBar: OFF",
