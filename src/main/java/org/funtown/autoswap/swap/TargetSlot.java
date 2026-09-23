@@ -1,6 +1,6 @@
 package org.funtown.autoswap.swap;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public enum TargetSlot {
     HELMET     ("autoswap.slot.helmet",      5),
@@ -18,7 +18,7 @@ public enum TargetSlot {
     }
 
     public String getDisplayName() {
-        return Text.translatable(translationKey).getString();
+        return Component.translatable(translationKey).getString();
     }
 
     public TargetSlot next() {

@@ -1,15 +1,15 @@
 package org.funtown.autoswap.swap;
 
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.EquippableComponent;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.equipment.Equippable;
 
 public class SlotDetector {
 
     public static TargetSlot detectSlot(Item item) {
         ItemStack stack = new ItemStack(item);
-        EquippableComponent equippable = stack.get(DataComponentTypes.EQUIPPABLE);
+        Equippable equippable = stack.getComponents().get(DataComponents.EQUIPPABLE);
 
         if (equippable != null) {
             return switch (equippable.slot()) {
@@ -22,7 +22,6 @@ public class SlotDetector {
             };
         }
 
-        
         return TargetSlot.OFFHAND;
     }
 }

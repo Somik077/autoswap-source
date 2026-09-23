@@ -4,8 +4,9 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
-import net.minecraft.client.MinecraftClient;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 import org.funtown.autoswap.config.AutoSwapConfig;
 import org.funtown.autoswap.config.AutoSwapSettings;
 import org.funtown.autoswap.config.ModTranslation;
@@ -35,7 +36,7 @@ public class AutoSwapClient implements ClientModInitializer {
             SwapExecutor.tick(client);
             SwapHud.tick();
 
-            if (client.currentScreen != null) return;
+            if (client.screen != null) return;
 
             List<SwapEntry> entries = AutoSwapConfig.getInstance().getEntries();
 
@@ -53,14 +54,16 @@ public class AutoSwapClient implements ClientModInitializer {
             if (!toFire.isEmpty()) SwapExecutor.schedule(toFire);
         });
 
-        HudRenderCallback.EVENT.register(SwapHud::render);
+        HudElementRegistry.addLast(
+                Identifier.fromNamespaceAndPath(AutoSwapMod.MOD_ID, "swap_hud"),
+                SwapHud::extractRenderState);
     }
 
     private static String detectMcLanguage() {
         try {
-            MinecraftClient mc = MinecraftClient.getInstance();
+            Minecraft mc = Minecraft.getInstance();
             if (mc != null && mc.options != null)
-                return "ru_ru".equalsIgnoreCase(mc.options.language) ? "ru_ru" : "en_us";
+                return "ru_ru".equalsIgnoreCase(mc.options.languageCode) ? "ru_ru" : "en_us";
         } catch (Exception ignored) {}
         return "en_us";
     }
