@@ -1,17 +1,16 @@
 package org.funtown.autoswap.screen;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.EntryListWidget;
-import net.minecraft.client.util.InputUtil;
-
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.ObjectSelectionList;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import org.funtown.autoswap.config.AutoSwapConfig;
 import org.funtown.autoswap.config.ModTranslation;
 import org.funtown.autoswap.config.Profile;
@@ -26,7 +25,7 @@ public class AutoSwapConfigScreen extends Screen {
     private SwapListWidget swapList;
 
     SwapEntry    keyBindTarget = null;
-    ButtonWidget keyBindButton = null;
+    Button       keyBindButton = null;
 
     private static final int TAB_Y    = 28;
     private static final int TAB_H    = 18;
@@ -37,36 +36,36 @@ public class AutoSwapConfigScreen extends Screen {
         this.parent = parent;
     }
 
-    public void refresh() { clearAndInit(); }
+    public void refresh() { rebuildWidgets(); }
 
-    void startKeyBind(SwapEntry entry, ButtonWidget btn) {
+    void startKeyBind(SwapEntry entry, Button btn) {
         if (keyBindTarget != null)
-            keyBindButton.setMessage(Text.literal(keyBindTarget.getKeyDisplayName()));
+            keyBindButton.setMessage(Component.literal(keyBindTarget.getKeyDisplayName()));
         keyBindTarget = entry;
         keyBindButton = btn;
         btn.setMessage(ModTranslation.t("autoswap.screen.config.press_key")
-                .copy().formatted(Formatting.YELLOW));
+                .copy().withStyle(ChatFormatting.YELLOW));
     }
 
     @Override
     protected void init() {
-        swapList = new SwapListWidget(client, width, height - LIST_TOP - 30, LIST_TOP, 32);
-        addDrawableChild(swapList);
+        swapList = new SwapListWidget(minecraft, width, height - LIST_TOP - 30, LIST_TOP, 32);
+        addRenderableWidget(swapList);
 
-        addDrawableChild(ButtonWidget.builder(
+        addRenderableWidget(Button.builder(
                 ModTranslation.t("autoswap.screen.config.add"),
                 btn -> { AutoSwapConfig.getInstance().getEntries().add(new SwapEntry()); AutoSwapConfig.save(); swapList.reload(); }
-        ).dimensions(width / 2 - 156, height - 24, 100, 20).build());
+        ).bounds(width / 2 - 156, height - 24, 100, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
+        addRenderableWidget(Button.builder(
                 ModTranslation.t("autoswap.screen.config.settings"),
-                btn -> client.setScreen(new SettingsScreen(this))
-        ).dimensions(width / 2 - 50, height - 24, 100, 20).build());
+                btn -> minecraft.setScreen(new SettingsScreen(this))
+        ).bounds(width / 2 - 50, height - 24, 100, 20).build());
 
-        addDrawableChild(ButtonWidget.builder(
+        addRenderableWidget(Button.builder(
                 ModTranslation.t("autoswap.screen.config.done"),
-                btn -> close()
-        ).dimensions(width / 2 + 56, height - 24, 100, 20).build());
+                btn -> onClose()
+        ).bounds(width / 2 + 56, height - 24, 100, 20).build());
     }
 
     private int tabWidth() {
@@ -78,9 +77,10 @@ public class AutoSwapConfigScreen extends Screen {
     }
 
     @Override
-    public void render(DrawContext ctx, int mx, int my, float delta) {
-        super.render(ctx, mx, my, delta);
-        ctx.drawCenteredTextWithShadow(textRenderer, ModTranslation.t("autoswap.screen.config.title"), width / 2, 10, 0xFFFFFFFF);
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mx, int my, float delta) {
+        super.extractRenderState(ctx, mx, my, delta);
+        Font font = getFont();
+        ctx.centeredText(font, ModTranslation.t("autoswap.screen.config.title"), width / 2, 10, 0xFFFFFFFF);
 
         List<Profile> profiles = AutoSwapConfig.getInstance().profiles;
         int active = AutoSwapConfig.getInstance().activeProfile, tw = tabWidth();
@@ -89,21 +89,21 @@ public class AutoSwapConfigScreen extends Screen {
             ctx.fill(tx+1, TAB_Y, tx+tw-1, TAB_Y+TAB_H, sel ? 0xCC5588CC : 0x88333333);
             String name = profiles.get(i).name;
             if (name.length() > 9) name = name.substring(0,8)+"…";
-            ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(name), tx+tw/2, TAB_Y+4, sel ? 0xFFFFFFFF : 0xFFAAAAAA);
+            ctx.centeredText(font, Component.literal(name), tx+tw/2, TAB_Y+4, sel ? 0xFFFFFFFF : 0xFFAAAAAA);
             if (!sel && mx>=tx && mx<tx+tw && my>=TAB_Y && my<TAB_Y+TAB_H)
                 ctx.fill(tx+1, TAB_Y, tx+tw-1, TAB_Y+TAB_H, 0x30FFFFFF);
             if (sel && profiles.size()>1)
-                ctx.drawTextWithShadow(textRenderer, Text.literal("✕").formatted(Formatting.RED), tx+tw-11, TAB_Y+4, 0xFFFF5555);
+                ctx.text(font, Component.literal("✕").withStyle(ChatFormatting.RED), tx+tw-11, TAB_Y+4, 0xFFFF5555);
         }
         int addX = tabStartX(profiles.size());
         ctx.fill(addX+1, TAB_Y, addX+tw-1, TAB_Y+TAB_H, 0x88333333);
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("+").formatted(Formatting.GREEN), addX+tw/2, TAB_Y+4, 0xFF55FF55);
+        ctx.centeredText(font, Component.literal("+").withStyle(ChatFormatting.GREEN), addX+tw/2, TAB_Y+4, 0xFF55FF55);
         if (AutoSwapConfig.getInstance().getEntries().isEmpty())
-            ctx.drawCenteredTextWithShadow(textRenderer, ModTranslation.t("autoswap.screen.config.empty"), width/2, height/2-8, 0xFF666666);
+            ctx.centeredText(font, ModTranslation.t("autoswap.screen.config.empty"), width/2, height/2-8, 0xFF666666);
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean consumed) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean consumed) {
         double mx = click.x(), my = click.y();
         if (my >= TAB_Y && my < TAB_Y + TAB_H) {
             List<Profile> profiles = AutoSwapConfig.getInstance().profiles;
@@ -131,16 +131,15 @@ public class AutoSwapConfigScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
+    public boolean keyPressed(KeyEvent input) {
         if (keyBindTarget != null) {
-            
-            InputUtil.Key key = InputUtil.fromKeyCode(input);
-            if (key.getCode() != GLFW.GLFW_KEY_ESCAPE) {
-                keyBindTarget.keyName = key.getTranslationKey();
-                keyBindButton.setMessage(Text.literal(keyBindTarget.getKeyDisplayName()));
+            InputConstants.Key key = InputConstants.getKey(input);
+            if (key.getValue() != GLFW.GLFW_KEY_ESCAPE) {
+                keyBindTarget.keyName = key.getName();
+                keyBindButton.setMessage(Component.literal(keyBindTarget.getKeyDisplayName()));
                 AutoSwapConfig.save();
             } else {
-                keyBindButton.setMessage(Text.literal(keyBindTarget.getKeyDisplayName()));
+                keyBindButton.setMessage(Component.literal(keyBindTarget.getKeyDisplayName()));
             }
             keyBindTarget = null; keyBindButton = null;
             return true;
@@ -149,15 +148,13 @@ public class AutoSwapConfigScreen extends Screen {
     }
 
     @Override
-    public void close() { AutoSwapConfig.save(); assert client != null; client.setScreen(parent); }
+    public void onClose() { AutoSwapConfig.save(); minecraft.setScreen(parent); }
 
-    class SwapListWidget extends EntryListWidget<SwapListWidget.EntryRow> {
+    class SwapListWidget extends ObjectSelectionList<SwapListWidget.EntryRow> {
 
-        SwapListWidget(MinecraftClient mc, int w, int h, int top, int itemH) {
+        SwapListWidget(Minecraft mc, int w, int h, int top, int itemH) {
             super(mc, w, h, top, itemH); reload();
         }
-
-        public void appendClickableNarrations(NarrationMessageBuilder b) {}
 
         void reload() {
             clearEntries();
@@ -167,30 +164,31 @@ public class AutoSwapConfigScreen extends Screen {
 
         @Override public int getRowWidth() { return Math.min(width - 20, 400); }
 
-        class EntryRow extends EntryListWidget.Entry<EntryRow> {
+        class EntryRow extends ObjectSelectionList.Entry<EntryRow> {
 
             private final SwapEntry entry;
             private final int       idx;
-            private       ButtonWidget keyBtn;
-            private final ButtonWidget editBtn;
-            private final ButtonWidget deleteBtn;
+            private       Button    keyBtn;
+            private final Button    editBtn;
+            private final Button    deleteBtn;
 
             EntryRow(SwapEntry entry, int idx) {
                 this.entry = entry; this.idx = idx;
-                keyBtn = ButtonWidget.builder(Text.literal(entry.getKeyDisplayName()),
+                keyBtn = Button.builder(Component.literal(entry.getKeyDisplayName()),
                         btn -> AutoSwapConfigScreen.this.startKeyBind(entry, keyBtn)
                 ).size(70, 20).build();
-                editBtn = ButtonWidget.builder(ModTranslation.t("autoswap.screen.config.edit"),
-                        btn -> client.setScreen(new EditSwapScreen(AutoSwapConfigScreen.this, entry))
+                editBtn = Button.builder(ModTranslation.t("autoswap.screen.config.edit"),
+                        btn -> minecraft.setScreen(new EditSwapScreen(AutoSwapConfigScreen.this, entry))
                 ).size(60, 20).build();
-                deleteBtn = ButtonWidget.builder(Text.literal("✕").formatted(Formatting.RED), btn -> {
+                deleteBtn = Button.builder(Component.literal("✕").withStyle(ChatFormatting.RED), btn -> {
                     AutoSwapConfig.getInstance().getEntries().remove(idx);
                     AutoSwapConfig.save(); swapList.reload();
                 }).size(20, 20).build();
             }
 
             @Override
-            public void render(DrawContext ctx, int mouseX, int mouseY, boolean hov, float d) {
+            public void extractContent(GuiGraphicsExtractor ctx, int mouseX, int mouseY, boolean hov, float d) {
+                Font font = getFont();
                 int x = getX(), ew = getWidth();
                 int y = getY();
                 int midY = y + (32 - 20) / 2;
@@ -198,36 +196,38 @@ public class AutoSwapConfigScreen extends Screen {
                 if (hov) ctx.fill(x, y, x+ew, y+32, 0x18FFFFFF);
 
                 String label = entry.getDisplayLabel();
-                ctx.drawTextWithShadow(client.textRenderer,
-                        Text.literal(label).formatted(entry.pairs.isEmpty() ? Formatting.GRAY : Formatting.WHITE),
+                ctx.text(font, Component.literal(label).withStyle(
+                                entry.pairs.isEmpty() ? ChatFormatting.GRAY : ChatFormatting.WHITE),
                         x+4, midY+5, 0xFFFFFFFF);
                 int count = entry.pairs.size();
                 if (count == 0)
-                    ctx.drawTextWithShadow(client.textRenderer,
-                            ModTranslation.t("autoswap.screen.config.no_pairs").copy().formatted(Formatting.DARK_RED),
-                            x+4+textRenderer.getWidth(label)+2, midY+5, 0xFFFF5555);
+                    ctx.text(font, ModTranslation.t("autoswap.screen.config.no_pairs")
+                                    .copy().withStyle(ChatFormatting.DARK_RED),
+                            x+4+font.width(label)+2, midY+5, 0xFFFF5555);
                 else if (count > 1)
-                    ctx.drawTextWithShadow(client.textRenderer,
-                            Text.literal(" ("+count+")").formatted(Formatting.DARK_GRAY),
-                            x+4+textRenderer.getWidth(label), midY+5, 0xFF666666);
+                    ctx.text(font, Component.literal(" ("+count+")").withStyle(ChatFormatting.DARK_GRAY),
+                            x+4+font.width(label), midY+5, 0xFF666666);
 
-                deleteBtn.setPosition(x+ew-24, midY); editBtn.setPosition(x+ew-88, midY); keyBtn.setPosition(x+ew-162, midY);
-                keyBtn.render(ctx, mouseX, mouseY, d); editBtn.render(ctx, mouseX, mouseY, d); deleteBtn.render(ctx, mouseX, mouseY, d);
+                deleteBtn.setX(x+ew-24);  deleteBtn.setY(midY);
+                editBtn.setX(x+ew-88);    editBtn.setY(midY);
+                keyBtn.setX(x+ew-162);    keyBtn.setY(midY);
+                keyBtn.extractRenderState(ctx, mouseX, mouseY, d);
+                editBtn.extractRenderState(ctx, mouseX, mouseY, d);
+                deleteBtn.extractRenderState(ctx, mouseX, mouseY, d);
             }
 
             @Override
-            public boolean mouseClicked(Click click, boolean consumed) {
-                for (var c : children()) if (c.mouseClicked(click, consumed)) return true;
+            public boolean mouseClicked(MouseButtonEvent click, boolean consumed) {
+                if (keyBtn.mouseClicked(click, consumed)) return true;
+                if (editBtn.mouseClicked(click, consumed)) return true;
+                if (deleteBtn.mouseClicked(click, consumed)) return true;
                 return false;
             }
 
-            public List<? extends net.minecraft.client.gui.Element> children() {
-                return List.of(keyBtn, editBtn, deleteBtn);
+            @Override
+            public Component getNarration() {
+                return Component.literal(entry.getDisplayLabel());
             }
-            public List<? extends net.minecraft.client.gui.Selectable> selectableChildren() {
-                return List.of(keyBtn, editBtn, deleteBtn);
-            }
-            public void appendNarrations(NarrationMessageBuilder b) {}
         }
     }
 }

@@ -1,18 +1,20 @@
 package org.funtown.autoswap.screen;
 
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.MathHelper;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.funtown.autoswap.config.ModTranslation;
 import org.lwjgl.glfw.GLFW;
 
@@ -26,7 +28,7 @@ public class ItemPickerScreen extends Screen {
 
     private final Screen parent;
     private final Consumer<Item> callback;
-    private TextFieldWidget searchField;
+    private EditBox searchField;
     private final List<Item> allItems;
     private List<Item> filtered;
     private int  scrollRow   = 0;
@@ -36,43 +38,47 @@ public class ItemPickerScreen extends Screen {
         super(ModTranslation.t("autoswap.screen.picker.title"));
         this.parent = parent; this.callback = callback;
         allItems = new ArrayList<>();
-        Registries.ITEM.forEach(item -> { if (item != Items.AIR) allItems.add(item); });
-        
+        BuiltInRegistries.ITEM.forEach(item -> { if (item != Items.AIR) allItems.add(item); });
+
         allItems.sort((a, b) -> {
             if (a == Items.PLAYER_HEAD && b != Items.PLAYER_HEAD) return -1;
             if (a != Items.PLAYER_HEAD && b == Items.PLAYER_HEAD) return  1;
-            return a.getName().getString().compareToIgnoreCase(b.getName().getString());
+            return name(a).compareToIgnoreCase(name(b));
         });
         filtered = new ArrayList<>(allItems);
     }
 
+    private static String name(Item item) {
+        return new ItemStack(item).getHoverName().getString();
+    }
+
     @Override
     protected void init() {
-        searchField = new TextFieldWidget(textRenderer, width/2-110, PAD+16, 220, 20,
+        searchField = new EditBox(getFont(), width/2-110, PAD+16, 220, 20,
                 ModTranslation.t("autoswap.screen.picker.search"));
         searchField.setMaxLength(64);
-        searchField.setPlaceholder(ModTranslation.t("autoswap.screen.picker.search")
-                .copy().formatted(net.minecraft.util.Formatting.DARK_GRAY));
-        searchField.setChangedListener(q -> {
+        searchField.setHint(ModTranslation.t("autoswap.screen.picker.search")
+                .copy().withStyle(ChatFormatting.DARK_GRAY));
+        searchField.setResponder(q -> {
             scrollRow = 0;
             String query = q.trim().toLowerCase(Locale.ROOT);
             filtered = query.isEmpty() ? new ArrayList<>(allItems) :
                     allItems.stream().filter(item ->
-                            item.getName().getString().toLowerCase(Locale.ROOT).contains(query) ||
-                                    Registries.ITEM.getId(item).toString().toLowerCase(Locale.ROOT).contains(query)
+                            name(item).toLowerCase(Locale.ROOT).contains(query) ||
+                                    BuiltInRegistries.ITEM.getKey(item).toString().toLowerCase(Locale.ROOT).contains(query)
                     ).collect(Collectors.toList());
         });
-        addDrawableChild(searchField);
+        addRenderableWidget(searchField);
         setInitialFocus(searchField);
-        addDrawableChild(ButtonWidget.builder(ModTranslation.t("autoswap.screen.picker.cancel"),
-                btn -> client.setScreen(parent)
-        ).dimensions(width/2-50, height-PAD-20, 100, 20).build());
+        addRenderableWidget(Button.builder(ModTranslation.t("autoswap.screen.picker.cancel"),
+                btn -> minecraft.setScreen(parent)
+        ).bounds(width/2-50, height-PAD-20, 100, 20).build());
     }
 
     @Override
-    public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        super.render(ctx, mouseX, mouseY, delta);
-        ctx.drawCenteredTextWithShadow(textRenderer, title, width/2, PAD, 0xFFFFFFFF);
+    public void extractRenderState(GuiGraphicsExtractor ctx, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(ctx, mouseX, mouseY, delta);
+        ctx.centeredText(getFont(), title, width/2, PAD, 0xFFFFFFFF);
 
         int gridX = (width-COLS*CELL)/2, gridTop = PAD+16+20+PAD, gridBottom = height-PAD-20-PAD;
         int visRows = (gridBottom-gridTop)/CELL;
@@ -86,18 +92,18 @@ public class ItemPickerScreen extends Screen {
                 int ix = gridX+col*CELL, iy = gridTop+row*CELL;
                 boolean hov = mouseX>=ix && mouseX<ix+CELL && mouseY>=iy && mouseY<iy+CELL;
                 if (hov) { ctx.fill(ix, iy, ix+CELL, iy+CELL, 0x60FFFFFF); hoveredItem = item; }
-                ctx.drawItem(new ItemStack(item), ix+1, iy+1);
+                ctx.item(new ItemStack(item), ix+1, iy+1);
             }
         }
 
         if (hoveredItem != null) {
-            List<Text> tip = new ArrayList<>();
-            tip.add(hoveredItem.getName());
+            List<Component> tip = new ArrayList<>();
+            tip.add(hoveredItem.getName(new ItemStack(hoveredItem)));
             if (hoveredItem == Items.PLAYER_HEAD) {
-                tip.add(Text.literal("Used for server custom items").styled(s -> s.withColor(0x888888).withItalic(true)));
-                tip.add(Text.literal("(custom spheres, etc.)").styled(s -> s.withColor(0x888888).withItalic(true)));
+                tip.add(Component.literal("Used for server custom items").withStyle(s -> s.withColor(0x888888).withItalic(true)));
+                tip.add(Component.literal("(custom spheres, etc.)").withStyle(s -> s.withColor(0x888888).withItalic(true)));
             }
-            ctx.drawTooltip(textRenderer, tip, mouseX, mouseY);
+            ctx.setTooltipForNextFrame(getFont(), tip, Optional.<TooltipComponent>empty(), mouseX, mouseY);
         }
 
         if (maxScrollRow() > 0) {
@@ -110,7 +116,7 @@ public class ItemPickerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseClicked(Click click, boolean consumed) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean consumed) {
         if (super.mouseClicked(click, consumed)) return true;
         double mx = click.x(), my = click.y();
         int gridX = (width-COLS*CELL)/2, gridTop = PAD+16+20+PAD, gridBottom = height-PAD-20-PAD;
@@ -122,7 +128,7 @@ public class ItemPickerScreen extends Screen {
                 int ix = gridX+col*CELL, iy = gridTop+row*CELL;
                 if (mx>=ix && mx<ix+CELL && my>=iy && my<iy+CELL) {
                     callback.accept(filtered.get(idx));
-                    client.setScreen(parent);
+                    minecraft.setScreen(parent);
                     return true;
                 }
             }
@@ -132,15 +138,14 @@ public class ItemPickerScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double h, double v) {
-        scrollRow = MathHelper.clamp(scrollRow-(int)Math.signum(v), 0, maxScrollRow());
+        scrollRow = Mth.clamp(scrollRow-(int)Math.signum(v), 0, maxScrollRow());
         return true;
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
-        
-        if (net.minecraft.client.util.InputUtil.fromKeyCode(input).getCode() == GLFW.GLFW_KEY_ESCAPE) {
-            client.setScreen(parent); return true;
+    public boolean keyPressed(KeyEvent input) {
+        if (InputConstants.getKey(input).getValue() == GLFW.GLFW_KEY_ESCAPE) {
+            minecraft.setScreen(parent); return true;
         }
         return super.keyPressed(input);
     }

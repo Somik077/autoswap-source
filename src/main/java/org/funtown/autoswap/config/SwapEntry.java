@@ -1,7 +1,7 @@
 package org.funtown.autoswap.config;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.util.InputUtil;
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.Minecraft;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,12 +11,11 @@ public class SwapEntry {
     public String         keyName = "key.keyboard.unknown";
     private transient boolean prevPressed = false;
 
-    public boolean wasJustPressed(MinecraftClient client) {
+    public boolean wasJustPressed(Minecraft client) {
         if ("key.keyboard.unknown".equals(keyName)) { prevPressed = false; return false; }
-        InputUtil.Key key = InputUtil.fromTranslationKey(keyName);
-        if (key.equals(InputUtil.UNKNOWN_KEY)) { prevPressed = false; return false; }
-        
-        boolean pressed     = InputUtil.isKeyPressed(client.getWindow(), key.getCode());
+        InputConstants.Key key = resolveKey(keyName);
+        if (key.equals(InputConstants.UNKNOWN)) { prevPressed = false; return false; }
+        boolean pressed     = InputConstants.isKeyDown(client.getWindow(), key.getValue());
         boolean justPressed = pressed && !prevPressed;
         prevPressed         = pressed;
         return justPressed;
@@ -24,9 +23,9 @@ public class SwapEntry {
 
     public String getKeyDisplayName() {
         if ("key.keyboard.unknown".equals(keyName)) return ModTranslation.get("autoswap.key.unbound");
-        InputUtil.Key key = InputUtil.fromTranslationKey(keyName);
-        if (key.equals(InputUtil.UNKNOWN_KEY)) return ModTranslation.get("autoswap.key.unbound");
-        return key.getLocalizedText().getString();
+        InputConstants.Key key = resolveKey(keyName);
+        if (key.equals(InputConstants.UNKNOWN)) return ModTranslation.get("autoswap.key.unbound");
+        return key.getDisplayName().getString();
     }
 
     public String getDisplayLabel() {
@@ -37,5 +36,10 @@ public class SwapEntry {
             return p.getItemAName() + " ↔ " + p.getItemBName();
         }
         return isDefault ? def : label;
+    }
+
+    private static InputConstants.Key resolveKey(String name) {
+        try { return InputConstants.getKey(name); }
+        catch (Exception e) { return InputConstants.UNKNOWN; }
     }
 }

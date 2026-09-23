@@ -2,7 +2,7 @@ package org.funtown.autoswap.config;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -20,7 +20,7 @@ public class ModTranslation {
     public static void load(String language) {
         Map<String, String> loaded = readFile(language);
         if (loaded.isEmpty() && !"en_us".equals(language)) {
-            loaded = readFile("en_us"); 
+            loaded = readFile("en_us");
         }
         strings = loaded;
     }
@@ -43,11 +43,11 @@ public class ModTranslation {
         return strings.getOrDefault(key, key);
     }
 
-    public static Text t(String key) {
-        return Text.literal(get(key));
+    public static Component t(String key) {
+        return Component.literal(get(key));
     }
 
-    public static Text t(String key, Object... args) {
-        return Text.literal(String.format(get(key), args));
+    public static Component t(String key, Object... args) {
+        return Component.literal(String.format(get(key), args));
     }
 }

@@ -1,13 +1,13 @@
 package org.funtown.autoswap.swap;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.screen.PlayerScreenHandler;
-import net.minecraft.screen.slot.SlotActionType;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.ContainerInput;
+import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import org.funtown.autoswap.config.AutoSwapConfig;
 import org.funtown.autoswap.config.SwapEntry;
 import org.funtown.autoswap.config.SwapPair;
@@ -41,7 +41,7 @@ public class SwapExecutor {
 
     public static void schedule(List<SwapEntry> entries) {
         if (state != State.IDLE || entries.isEmpty()) return;
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
         if (System.currentTimeMillis() - lastSwapTime
                 < AutoSwapConfig.getInstance().settings.swapCooldownMs) return;
@@ -53,17 +53,16 @@ public class SwapExecutor {
         state = State.OPEN_SCREEN;
     }
 
-    public static void tick(MinecraftClient client) {
+    public static void tick(Minecraft client) {
         if (state == State.IDLE || client.player == null) return;
 
-        if (screenOpened && client.currentScreen == null) {
+        if (screenOpened && client.screen == null) {
             finish(client);
             return;
         }
 
         switch (state) {
             case OPEN_SCREEN -> {
-                
                 wasSprinting = client.player.isSprinting();
                 client.player.setSprinting(false);
                 client.setScreen(new SilentInventoryScreen(client.player));
@@ -83,50 +82,50 @@ public class SwapExecutor {
         }
     }
 
-    private static void stepSwap(MinecraftClient client) {
+    private static void stepSwap(Minecraft client) {
         if (step == 0) {
             SwapPair pair = queue.poll();
             if (pair == null) { finish(client); return; }
             startPair(client, pair);
-            return; 
+            return;
         }
 
-        PlayerScreenHandler handler = client.player.playerScreenHandler;
-        int syncId = handler.syncId;
+        InventoryMenu handler = client.player.inventoryMenu;
+        int syncId = handler.containerId;
 
         if (step == 1) {
             if (offhandMode) {
-                client.interactionManager.clickSlot(syncId, src, 40, SlotActionType.SWAP, client.player);
+                client.gameMode.handleContainerInput(syncId, src, 40, ContainerInput.SWAP, client.player);
                 recordHud();
                 step = 0;
             } else {
-                client.interactionManager.clickSlot(syncId, src, 0, SlotActionType.PICKUP, client.player);
+                client.gameMode.handleContainerInput(syncId, src, 0, ContainerInput.PICKUP, client.player);
                 step = 2;
             }
             return;
         }
         if (step == 2) {
-            client.interactionManager.clickSlot(syncId, dst, 0, SlotActionType.PICKUP, client.player);
+            client.gameMode.handleContainerInput(syncId, dst, 0, ContainerInput.PICKUP, client.player);
             step = 3;
             return;
         }
-        if (!handler.getCursorStack().isEmpty())
-            client.interactionManager.clickSlot(syncId, src, 0, SlotActionType.PICKUP, client.player);
+        if (!handler.getCarried().isEmpty())
+            client.gameMode.handleContainerInput(syncId, src, 0, ContainerInput.PICKUP, client.player);
         recordHud();
         step = 0;
     }
 
-    private static void startPair(MinecraftClient client, SwapPair pair) {
+    private static void startPair(Minecraft client, SwapPair pair) {
         Item itemA = resolve(pair.itemId);
         Item itemB = resolve(pair.itemId2);
         if (itemA == null && itemB == null) return;
 
-        PlayerInventory inv     = client.player.getInventory();
-        int             tgtSlot = pair.targetSlot.screenSlot;
-        ItemStack       inSlot  = client.player.playerScreenHandler.getSlot(tgtSlot).getStack();
+        Inventory inv     = client.player.getInventory();
+        int       tgtSlot = pair.targetSlot.screenSlot;
+        ItemStack inSlot  = client.player.inventoryMenu.getSlot(tgtSlot).getItem();
 
-        boolean aOn = itemA != null && !inSlot.isEmpty() && inSlot.isOf(itemA);
-        boolean bOn = itemB != null && !inSlot.isEmpty() && inSlot.isOf(itemB);
+        boolean aOn = itemA != null && !inSlot.isEmpty() && inSlot.getItem() == itemA;
+        boolean bOn = itemB != null && !inSlot.isEmpty() && inSlot.getItem() == itemB;
 
         int srcInv = -1;
         toEquip = null;
@@ -135,20 +134,17 @@ public class SwapExecutor {
             if (itemB == null) return;
             srcInv  = findSlot(inv, itemB);
             toEquip = itemB;
-            if (srcInv == -1) { SwapHud.showNotFound(itemB.getName().getString()); return; }
+            if (srcInv == -1) { SwapHud.showNotFound(name(itemB)); return; }
         } else if (bOn) {
             if (itemA == null) return;
             srcInv  = findSlot(inv, itemA);
             toEquip = itemA;
-            if (srcInv == -1) { SwapHud.showNotFound(itemA.getName().getString()); return; }
+            if (srcInv == -1) { SwapHud.showNotFound(name(itemA)); return; }
         } else {
             if (itemA != null) { srcInv = findSlot(inv, itemA); toEquip = itemA; }
             if (srcInv == -1 && itemB != null) { srcInv = findSlot(inv, itemB); toEquip = itemB; }
             if (srcInv == -1) {
-                String missingName = itemA != null
-                        ? itemA.getName().getString()
-                        : itemB.getName().getString();
-                SwapHud.showNotFound(missingName);
+                SwapHud.showNotFound(name(itemA != null ? itemA : itemB));
                 return;
             }
         }
@@ -161,11 +157,11 @@ public class SwapExecutor {
 
     private static void recordHud() {
         hudIcons.add(new ItemStack(toEquip));
-        hudNames.add(toEquip.getName().getString());
+        hudNames.add(name(toEquip));
     }
 
-    private static void finish(MinecraftClient client) {
-        if (screenOpened && client.currentScreen != null) client.setScreen(null);
+    private static void finish(Minecraft client) {
+        if (screenOpened && client.screen != null) client.setScreen(null);
         if (wasSprinting) client.player.setSprinting(true);
         wasSprinting = false;
         if (!hudIcons.isEmpty() && AutoSwapConfig.getInstance().settings.showActionBar)
@@ -179,10 +175,13 @@ public class SwapExecutor {
 
     private static Item resolve(String id) {
         if (id == null || id.isEmpty() || "minecraft:air".equals(id)) return null;
-        try { return Registries.ITEM.get(Identifier.of(id)); } catch (Exception e) { return null; }
+        try { return BuiltInRegistries.ITEM.getValue(Identifier.parse(id)); } catch (Exception e) { return null; }
     }
-    private static int findSlot(PlayerInventory inv, Item item) {
-        for (int i = 0; i < 36; i++) if (inv.getStack(i).isOf(item)) return i;
+    private static String name(Item item) {
+        return new ItemStack(item).getHoverName().getString();
+    }
+    private static int findSlot(Inventory inv, Item item) {
+        for (int i = 0; i < 36; i++) if (inv.getItem(i).getItem() == item) return i;
         return -1;
     }
     private static int invToScreen(int i) { return i < 9 ? 36 + i : i; }
