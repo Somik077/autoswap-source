@@ -15,7 +15,7 @@
   "autoswap.screen.edit.empty":             "Нет пар. Нажмите \"+ Добавить пару\".",
 
   "autoswap.screen.settings.title":        "AutoSwap — Настройки",
-  "autoswap.screen.settings.delay":        "Задержка открытия инвентаря",
+  "autoswap.screen.settings.delay":        "Задержка между кликами",
   "autoswap.screen.settings.cooldown":     "Кулдаун свапа",
   "autoswap.screen.settings.actionbar_on": "⚔ ActionBar: ВКЛ",
   "autoswap.screen.settings.actionbar_off":"⚔ ActionBar: ВЫКЛ",

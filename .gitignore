@@ -1,0 +1,13 @@
+# gradle
+build/
+.gradle/
+classes/
+
+# ide
+.idea/
+*.iml
+.vscode/
+
+# minecraft dev env
+run/
+remappedSrc/
