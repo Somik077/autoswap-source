@@ -16,7 +16,7 @@ public class SettingsScreen extends Screen {
     private Button actionBarBtn;
     private Button langBtn;
 
-    private static final int[] COOLDOWN_STEPS = {0, 100, 200, 300, 500, 750, 1000};
+    private static final int[] COOLDOWN_STEPS = {0, 100, 200, 300, 500, 750, 1000, 1500, 2000, 3000};
 
     public SettingsScreen(Screen parent) {
         super(ModTranslation.t("autoswap.screen.settings.title"));
@@ -30,12 +30,12 @@ public class SettingsScreen extends Screen {
         int cx = width / 2, y0 = height / 2 - 80, row = 38;
 
         addRenderableWidget(Button.builder(Component.literal("◀"), btn -> {
-            s.inventoryOpenDelayTicks = Math.max(1, s.inventoryOpenDelayTicks - 1);
+            s.stepDelayTicks = Math.max(1, s.stepDelayTicks - 1);
             AutoSwapConfig.save();
         }).bounds(cx - 60, y0 + 16, 20, 20).build());
 
         addRenderableWidget(Button.builder(Component.literal("▶"), btn -> {
-            s.inventoryOpenDelayTicks = Math.min(10, s.inventoryOpenDelayTicks + 1);
+            s.stepDelayTicks = Math.min(20, s.stepDelayTicks + 1);
             AutoSwapConfig.save();
         }).bounds(cx + 40, y0 + 16, 20, 20).build());
 
@@ -86,7 +86,7 @@ public class SettingsScreen extends Screen {
         ctx.centeredText(getFont(),
                 ModTranslation.t("autoswap.screen.settings.delay"), cx, y0 + 4, 0xFFAAAAAA);
         ctx.centeredText(getFont(),
-                Component.literal(s.inventoryOpenDelayTicks + " tick(s)"), cx, y0 + 20, 0xFFFFFFFF);
+                Component.literal(s.stepDelayTicks + " tick(s)"), cx, y0 + 20, 0xFFFFFFFF);
 
         ctx.centeredText(getFont(),
                 ModTranslation.t("autoswap.screen.settings.cooldown"), cx, y0 + row + 4, 0xFFAAAAAA);
