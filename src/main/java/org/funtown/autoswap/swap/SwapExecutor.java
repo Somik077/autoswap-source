@@ -1,6 +1,7 @@
 package org.funtown.autoswap.swap;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
@@ -13,6 +14,7 @@ import org.funtown.autoswap.config.AutoSwapConfig;
 import org.funtown.autoswap.config.SwapEntry;
 import org.funtown.autoswap.config.SwapPair;
 import org.funtown.autoswap.hud.SwapHud;
+import org.funtown.autoswap.screen.HiddenInventoryScreen;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -21,7 +23,7 @@ import java.util.Random;
 
 public class SwapExecutor {
 
-    private enum State { IDLE, SWAPPING }
+    private enum State { IDLE, OPEN_SCREEN, SWAPPING }
 
     private static final Random RANDOM = new Random();
 
@@ -30,6 +32,8 @@ public class SwapExecutor {
     private static final ArrayDeque<SwapPair> queue = new ArrayDeque<>();
     private static int             waitTicks    = 0;
     private static long            lastSwapTime = 0L;
+    private static boolean         screenOpened = false;
+    private static boolean         hiddenScreen = false;
 
     private static int  step        = 0;
     private static int  src         = -1;
@@ -55,26 +59,39 @@ public class SwapExecutor {
         hudIcons.clear();
         hudNames.clear();
         step = 0;
-        waitTicks = nextStepDelay();
-        state = State.SWAPPING;
+        state = State.OPEN_SCREEN;
+        hiddenScreen = allSourcesInHotbar(client, entries);
     }
 
     public static void tick(Minecraft client) {
         if (state == State.IDLE || client.player == null) return;
 
         if (client.player.containerMenu != client.player.inventoryMenu) {
-            abort();
+            abort(client);
             return;
         }
 
-        if (--waitTicks > 0) return;
-        stepSwap(client);
+        switch (state) {
+            case OPEN_SCREEN -> {
+                client.setScreen(hiddenScreen
+                        ? new HiddenInventoryScreen(client.player)
+                        : new InventoryScreen(client.player));
+                screenOpened = true;
+                waitTicks = nextStepDelay();
+                state = State.SWAPPING;
+            }
+            case SWAPPING -> {
+                if (screenOpened && client.screen == null) { finish(client); return; }
+                if (--waitTicks > 0) return;
+                stepSwap(client);
+            }
+        }
     }
 
     private static void stepSwap(Minecraft client) {
         if (step == 0) {
             SwapPair pair = queue.poll();
-            if (pair == null) { finish(); return; }
+            if (pair == null) { finish(client); return; }
             startPair(client, pair);
             if (step != 0) waitTicks = nextStepDelay();
             return;
@@ -105,7 +122,7 @@ public class SwapExecutor {
             client.gameMode.handleContainerInput(containerId, src, 0, ContainerInput.PICKUP, client.player);
         recordHud();
         step = 0;
-        if (queue.isEmpty()) { finish(); return; }
+        if (queue.isEmpty()) { finish(client); return; }
         waitTicks = nextStepDelay();
     }
 
@@ -157,25 +174,59 @@ public class SwapExecutor {
         step = 1;
     }
 
+    private static boolean allSourcesInHotbar(Minecraft client, List<SwapEntry> entries) {
+        Inventory     inv     = client.player.getInventory();
+        InventoryMenu handler = client.player.inventoryMenu;
+
+        for (SwapEntry entry : entries) {
+            for (SwapPair pair : entry.pairs) {
+                Item itemA = resolve(pair.itemId);
+                Item itemB = resolve(pair.itemId2);
+                if (itemA == null && itemB == null) continue;
+
+                ItemStack inSlot = handler.getSlot(pair.targetSlot.screenSlot).getItem();
+                boolean   aOn    = itemA != null && !inSlot.isEmpty() && inSlot.getItem() == itemA;
+                boolean   bOn    = itemB != null && !inSlot.isEmpty() && inSlot.getItem() == itemB;
+
+                int srcInv = -1;
+                if (aOn)      { if (itemB != null) srcInv = findSlot(inv, itemB); }
+                else if (bOn) { if (itemA != null) srcInv = findSlot(inv, itemA); }
+                else {
+                    if (itemA != null) srcInv = findSlot(inv, itemA);
+                    if (srcInv == -1 && itemB != null) srcInv = findSlot(inv, itemB);
+                }
+
+                if (srcInv >= 9) return false;
+            }
+        }
+        return true;
+    }
+
     private static void recordHud() {
         hudIcons.add(new ItemStack(toEquip));
         hudNames.add(name(toEquip));
     }
 
-    private static void finish() {
+    private static void finish(Minecraft client) {
+        if (screenOpened && client.screen instanceof InventoryScreen)
+            client.setScreen(null);
         if (!hudIcons.isEmpty() && AutoSwapConfig.getInstance().settings.showActionBar)
             SwapHud.showSuccess(hudIcons, hudNames);
         queue.clear();
         step = 0;
+        screenOpened = false;
         lastSwapTime = System.currentTimeMillis();
         state = State.IDLE;
     }
 
-    private static void abort() {
+    private static void abort(Minecraft client) {
+        if (screenOpened && client.screen instanceof InventoryScreen)
+            client.setScreen(null);
         queue.clear();
         hudIcons.clear();
         hudNames.clear();
         step = 0;
+        screenOpened = false;
         state = State.IDLE;
     }
 
