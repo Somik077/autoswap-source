@@ -126,14 +126,22 @@ public class SwapExecutor {
 
         if (aOn) {
             if (itemB == null) return;
-            srcInv  = findSlot(inv, itemB);
             toEquip = itemB;
-            if (srcInv == -1) { SwapHud.showNotFound(name(itemB)); return; }
+            srcInv  = findSlot(inv, itemB);
+            if (srcInv == -1) {
+                if (itemA == itemB) return;
+                SwapHud.showNotFound(name(itemB));
+                return;
+            }
         } else if (bOn) {
             if (itemA == null) return;
-            srcInv  = findSlot(inv, itemA);
             toEquip = itemA;
-            if (srcInv == -1) { SwapHud.showNotFound(name(itemA)); return; }
+            srcInv  = findSlot(inv, itemA);
+            if (srcInv == -1) {
+                if (itemA == itemB) return;
+                SwapHud.showNotFound(name(itemA));
+                return;
+            }
         } else {
             if (itemA != null) { srcInv = findSlot(inv, itemA); toEquip = itemA; }
             if (srcInv == -1 && itemB != null) { srcInv = findSlot(inv, itemB); toEquip = itemB; }
