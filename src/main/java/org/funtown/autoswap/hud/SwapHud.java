@@ -26,7 +26,7 @@ public class SwapHud {
     public static void showSuccess(List<ItemStack> icons, List<String> names) {
         entries.clear();
         for (int i = 0; i < Math.min(icons.size(), names.size()); i++) {
-            String text = (i == 0 ? "⚔ " : "") + names.get(i);
+            String text = (i == 0 ? "" : "") + names.get(i);
             entries.add(new Entry(icons.get(i), text, 0xFFFF55));
         }
         ticksLeft = TOTAL_TICKS;
@@ -37,7 +37,6 @@ public class SwapHud {
         String template = ModTranslation.get("autoswap.hud.not_found");
         String msg = template.contains("%s") ? template.replace("%s", itemName)
                 : itemName + " — " + template;
-        entries.add(new Entry(ItemStack.EMPTY, "✗ " + msg, 0xFF5555));
         ticksLeft = TOTAL_TICKS;
     }
 
@@ -57,7 +56,7 @@ public class SwapHud {
         TextRenderer tr      = client.textRenderer;
         int          screenW = context.getScaledWindowWidth();
         int          screenH = context.getScaledWindowHeight();
-        int          baseY   = screenH - 49; 
+        int          baseY   = screenH - 70;
         int          iconSize = 16;
         int          iconGap  = 3;
         String       sep      = "  |  ";

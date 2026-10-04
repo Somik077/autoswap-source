@@ -1,7 +1,6 @@
 package org.funtown.autoswap.swap;
 
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -10,11 +9,11 @@ import net.minecraft.registry.Registries;
 import net.minecraft.screen.PlayerScreenHandler;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Identifier;
+import org.funtown.autoswap.AutoSwapMod;
 import org.funtown.autoswap.config.AutoSwapConfig;
 import org.funtown.autoswap.config.SwapEntry;
 import org.funtown.autoswap.config.SwapPair;
 import org.funtown.autoswap.hud.SwapHud;
-import org.funtown.autoswap.screen.HiddenInventoryScreen;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -28,14 +27,13 @@ public class SwapExecutor {
     private static final Random RANDOM = new Random();
 
     private static final int MIN_STEP_DELAY = 1;
+    private static final int MIN_COOLDOWN_MS = 150;
 
     private static State state = State.IDLE;
 
     private static final ArrayDeque<SwapPair> queue = new ArrayDeque<>();
     private static int             waitTicks    = 0;
     private static long            lastSwapTime = 0L;
-    private static boolean         screenOpened = false;
-    private static boolean         hiddenScreen = false;
     private static boolean         wasSprinting = false;
 
     private static int  step        = 0;
@@ -51,6 +49,14 @@ public class SwapExecutor {
         return state != State.IDLE;
     }
 
+    private static boolean silencedReported = false;
+
+    public static boolean reportSilenced(Object before) {
+        if (silencedReported) return false;
+        silencedReported = true;
+        return true;
+    }
+
     public static void schedule(List<SwapEntry> entries) {
         if (state != State.IDLE || entries.isEmpty()) return;
         MinecraftClient client = MinecraftClient.getInstance();
@@ -60,18 +66,15 @@ public class SwapExecutor {
 
         if (System.currentTimeMillis() - lastSwapTime < nextCooldown()) return;
 
+        silencedReported = false;
+        AutoSwapMod.LOGGER.info("[AutoSwap] swap start");
+
         queue.clear();
         for (SwapEntry entry : entries)
             for (SwapPair pair : entry.pairs) queue.add(pair);
         hudIcons.clear();
         hudNames.clear();
         step = 0;
-
-        hiddenScreen = allSourcesInHotbar(client, entries);
-        client.setScreen(hiddenScreen
-                ? new HiddenInventoryScreen(client.player)
-                : new InventoryScreen(client.player));
-        screenOpened = true;
 
         wasSprinting = client.player.isSprinting();
         if (wasSprinting) client.player.setSprinting(false);
@@ -87,8 +90,6 @@ public class SwapExecutor {
             abort(client);
             return;
         }
-
-        if (screenOpened && client.currentScreen == null) { finish(client); return; }
 
         if (--waitTicks > 0) return;
         stepSwap(client);
@@ -213,29 +214,24 @@ public class SwapExecutor {
     }
 
     private static void finish(MinecraftClient client) {
-        if (screenOpened && client.currentScreen instanceof InventoryScreen)
-            client.setScreen(null);
         if (wasSprinting && client.player != null) client.player.setSprinting(true);
         wasSprinting = false;
         if (!hudIcons.isEmpty() && AutoSwapConfig.getInstance().settings.showActionBar)
             SwapHud.showSuccess(hudIcons, hudNames);
         queue.clear();
         step = 0;
-        screenOpened = false;
         lastSwapTime = System.currentTimeMillis();
         state = State.IDLE;
+        AutoSwapMod.LOGGER.info("[AutoSwap] swap done, {} click(s)", hudIcons.size());
     }
 
     private static void abort(MinecraftClient client) {
-        if (screenOpened && client.currentScreen instanceof InventoryScreen)
-            client.setScreen(null);
         if (wasSprinting && client.player != null) client.player.setSprinting(true);
         wasSprinting = false;
         queue.clear();
         hudIcons.clear();
         hudNames.clear();
         step = 0;
-        screenOpened = false;
         state = State.IDLE;
     }
 
@@ -245,8 +241,8 @@ public class SwapExecutor {
     }
 
     private static long nextCooldown() {
-        int ms = Math.max(0, AutoSwapConfig.getInstance().settings.swapCooldownMs);
-        return ms == 0 ? 0L : ms + RANDOM.nextInt(Math.max(1, ms / 2));
+        int ms = Math.max(MIN_COOLDOWN_MS, AutoSwapConfig.getInstance().settings.swapCooldownMs);
+        return ms + RANDOM.nextInt(Math.max(1, ms / 2));
     }
 
     private static Item resolve(String id) {

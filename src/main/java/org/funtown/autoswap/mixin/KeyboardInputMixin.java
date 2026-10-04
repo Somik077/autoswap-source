@@ -3,6 +3,7 @@ package org.funtown.autoswap.mixin;
 import net.minecraft.client.input.KeyboardInput;
 import net.minecraft.util.PlayerInput;
 import net.minecraft.util.math.Vec2f;
+import org.funtown.autoswap.AutoSwapMod;
 import org.funtown.autoswap.swap.SwapExecutor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,7 +17,11 @@ public abstract class KeyboardInputMixin {
     private void autoswap$silenceInput(CallbackInfo ci) {
         if (!SwapExecutor.isSwapActive()) return;
         InputAccessor accessor = (InputAccessor) (Object) this;
+        PlayerInput before = accessor.getPlayerInput();
         accessor.setPlayerInput(PlayerInput.DEFAULT);
         accessor.setMovementVector(Vec2f.ZERO);
+        if (SwapExecutor.reportSilenced(before)) {
+            AutoSwapMod.LOGGER.info("[AutoSwap] input silenced, was {}", before);
+        }
     }
 }
