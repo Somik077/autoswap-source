@@ -31,5 +31,8 @@
   },
   "suggests": {
     "modmenu": "*"
-  }
+  },
+  "mixins": [
+    "autoswap.mixins.json"
+  ]
 }

@@ -23,9 +23,12 @@ import java.util.Random;
 
 public class SwapExecutor {
 
-    private enum State { IDLE, OPEN_SCREEN, SWAPPING }
+    private enum State { IDLE, OPEN_SCREEN, SWAPPING, CLOSING }
 
     private static final Random RANDOM = new Random();
+
+    private static final int MIN_STEP_DELAY    = 2;
+    private static final int CLOSE_DELAY_TICKS = 2;
 
     private static State state = State.IDLE;
 
@@ -34,6 +37,7 @@ public class SwapExecutor {
     private static long            lastSwapTime = 0L;
     private static boolean         screenOpened = false;
     private static boolean         hiddenScreen = false;
+    private static boolean         wasSprinting = false;
 
     private static int  step        = 0;
     private static int  src         = -1;
@@ -43,6 +47,10 @@ public class SwapExecutor {
 
     private static final List<ItemStack> hudIcons = new ArrayList<>();
     private static final List<String>    hudNames = new ArrayList<>();
+
+    public static boolean isSwapActive() {
+        return state != State.IDLE;
+    }
 
     public static void schedule(List<SwapEntry> entries) {
         if (state != State.IDLE || entries.isEmpty()) return;
@@ -61,6 +69,9 @@ public class SwapExecutor {
         step = 0;
         state = State.OPEN_SCREEN;
         hiddenScreen = allSourcesInHotbar(client, entries);
+
+        wasSprinting = client.player.isSprinting();
+        if (wasSprinting) client.player.setSprinting(false);
     }
 
     public static void tick(MinecraftClient client) {
@@ -85,13 +96,17 @@ public class SwapExecutor {
                 if (--waitTicks > 0) return;
                 stepSwap(client);
             }
+            case CLOSING -> {
+                if (--waitTicks > 0) return;
+                finish(client);
+            }
         }
     }
 
     private static void stepSwap(MinecraftClient client) {
         if (step == 0) {
             SwapPair pair = queue.poll();
-            if (pair == null) { finish(client); return; }
+            if (pair == null) { startClosing(); return; }
             startPair(client, pair);
             if (step != 0) waitTicks = nextStepDelay();
             return;
@@ -122,8 +137,13 @@ public class SwapExecutor {
             client.interactionManager.clickSlot(syncId, src, 0, SlotActionType.PICKUP, client.player);
         recordHud();
         step = 0;
-        if (queue.isEmpty()) { finish(client); return; }
+        if (queue.isEmpty()) { startClosing(); return; }
         waitTicks = nextStepDelay();
+    }
+
+    private static void startClosing() {
+        waitTicks = CLOSE_DELAY_TICKS;
+        state = State.CLOSING;
     }
 
     private static void startPair(MinecraftClient client, SwapPair pair) {
@@ -210,6 +230,8 @@ public class SwapExecutor {
     private static void finish(MinecraftClient client) {
         if (screenOpened && client.currentScreen instanceof InventoryScreen)
             client.setScreen(null);
+        if (wasSprinting && client.player != null) client.player.setSprinting(true);
+        wasSprinting = false;
         if (!hudIcons.isEmpty() && AutoSwapConfig.getInstance().settings.showActionBar)
             SwapHud.showSuccess(hudIcons, hudNames);
         queue.clear();
@@ -222,6 +244,8 @@ public class SwapExecutor {
     private static void abort(MinecraftClient client) {
         if (screenOpened && client.currentScreen instanceof InventoryScreen)
             client.setScreen(null);
+        if (wasSprinting && client.player != null) client.player.setSprinting(true);
+        wasSprinting = false;
         queue.clear();
         hudIcons.clear();
         hudNames.clear();
@@ -231,7 +255,7 @@ public class SwapExecutor {
     }
 
     private static int nextStepDelay() {
-        int base = Math.max(1, AutoSwapConfig.getInstance().settings.stepDelayTicks);
+        int base = Math.max(MIN_STEP_DELAY, AutoSwapConfig.getInstance().settings.stepDelayTicks);
         return base + RANDOM.nextInt(2);
     }
 

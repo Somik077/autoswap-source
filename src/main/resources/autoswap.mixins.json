@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "org.funtown.autoswap.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "InputMixin",
+    "KeyboardInputMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
