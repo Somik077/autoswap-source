@@ -17,21 +17,16 @@ public class AutoSwapConfig {
 
     private static AutoSwapConfig instance = createDefault();
 
-    
-
     public AutoSwapSettings settings     = new AutoSwapSettings();
     public java.util.List<Profile> profiles = new ArrayList<>();
     public int             activeProfile = 0;
-
-    
+    public RadialConfig    radial        = new RadialConfig();
 
     private static AutoSwapConfig createDefault() {
         AutoSwapConfig c = new AutoSwapConfig();
         c.profiles.add(new Profile("Default"));
         return c;
     }
-
-    
 
     public static AutoSwapConfig getInstance() { return instance; }
 
@@ -45,8 +40,6 @@ public class AutoSwapConfig {
         return getActiveProfile().entries;
     }
 
-    
-
     public static void load() {
         File file = CONFIG_PATH.toFile();
         if (!file.exists()) { instance = createDefault(); return; }
@@ -59,6 +52,9 @@ public class AutoSwapConfig {
                 instance.profiles.add(new Profile("Default"));
             if (instance.settings == null)
                 instance.settings = new AutoSwapSettings();
+            if (instance.radial == null)
+                instance.radial = new RadialConfig();
+            instance.radial.normalize();
         } catch (Exception e) {
             System.err.println("[AutoSwap] Failed to load config: " + e.getMessage());
             instance = createDefault();

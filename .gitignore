@@ -11,3 +11,11 @@ classes/
 # minecraft dev env
 run/
 remappedSrc/
+
+# iml
+src/.idea
+src/autoswap 1.21.4.iml
+
+README.md
+autoswap.zip
+autoswap 1.21.4.zip

@@ -59,17 +59,22 @@ public class AutoSwapConfigScreen extends Screen {
                     AutoSwapConfig.save();
                     swapList.reload();
                 }
-        ).dimensions(width / 2 - 156, height - 24, 100, 20).build());
+        ).dimensions(width / 2 - 162, height - 24, 78, 20).build());
+
+        addDrawableChild(ButtonWidget.builder(
+                ModTranslation.t("autoswap.screen.config.radial"),
+                btn -> client.setScreen(new RadialSettingsScreen(this))
+        ).dimensions(width / 2 - 80, height - 24, 78, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 ModTranslation.t("autoswap.screen.config.settings"),
                 btn -> client.setScreen(new SettingsScreen(this))
-        ).dimensions(width / 2 - 50, height - 24, 100, 20).build());
+        ).dimensions(width / 2 + 2, height - 24, 78, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 ModTranslation.t("autoswap.screen.config.done"),
                 btn -> close()
-        ).dimensions(width / 2 + 56, height - 24, 100, 20).build());
+        ).dimensions(width / 2 + 84, height - 24, 78, 20).build());
     }
 
     
