@@ -12,6 +12,10 @@ public class SwapPair {
     public String     itemId2    = "minecraft:air";
     public TargetSlot targetSlot = TargetSlot.CHESTPLATE;
 
+    
+    public ItemFilter filterA = null;
+    public ItemFilter filterB = null;
+
     public String getItemAName() { return displayName(itemId); }
     public String getItemBName() { return displayName(itemId2); }
 

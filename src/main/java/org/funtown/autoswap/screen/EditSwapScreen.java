@@ -1,5 +1,6 @@
 package org.funtown.autoswap.screen;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -14,10 +15,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 import org.funtown.autoswap.config.AutoSwapConfig;
+import org.funtown.autoswap.config.ItemFilter;
 import org.funtown.autoswap.config.ModTranslation;
 import org.funtown.autoswap.config.SwapEntry;
 import org.funtown.autoswap.config.SwapPair;
 import org.funtown.autoswap.swap.SlotDetector;
+
+import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
@@ -63,6 +67,22 @@ public class EditSwapScreen extends Screen {
     @Override
     public void onClose() { AutoSwapConfig.save(); minecraft.setScreen(parent); }
 
+    private String filterLabel(ItemFilter f) {
+        String text = (f == null || f.isEmpty())
+                ? ModTranslation.get("autoswap.filter.none")
+                : "⚙ " + f.describe();
+        if (getFont().width(text) <= 92) return text;
+        String t = text;
+        while (!t.isEmpty() && getFont().width(t + "…") > 92) t = t.substring(0, t.length() - 1);
+        return t + "…";
+    }
+
+    private boolean shiftHeld() {
+        if (minecraft == null) return false;
+        return InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
+                || InputConstants.isKeyDown(minecraft.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
+    }
+
     class PairListWidget extends ObjectSelectionList<PairListWidget.PairRow> {
 
         PairListWidget(Minecraft mc, int w, int h, int top, int itemH) {
@@ -80,7 +100,7 @@ public class EditSwapScreen extends Screen {
 
             private final SwapPair pair;
             private final int      pairIndex;
-            private Button         itemABtn, itemBBtn, slotBtn;
+            private Button         itemABtn, itemBBtn, slotBtn, filterABtn, filterBBtn;
             private final Button   deleteBtn;
 
             PairRow(SwapPair pair, int pairIndex) {
@@ -89,7 +109,7 @@ public class EditSwapScreen extends Screen {
                 itemABtn = Button.builder(Component.literal(pair.getItemAName()),
                         btn -> minecraft.setScreen(new ItemPickerScreen(EditSwapScreen.this, item -> {
                             pair.itemId = BuiltInRegistries.ITEM.getKey(item).toString();
-                            pair.targetSlot = SlotDetector.detectSlot(item);
+                            if (!pair.targetSlot.isHotbarLike()) pair.targetSlot = SlotDetector.detectSlot(item);
                             itemABtn.setMessage(Component.literal(pair.getItemAName()));
                             slotBtn.setMessage(Component.literal(pair.targetSlot.getDisplayName()));
                             AutoSwapConfig.save();
@@ -98,14 +118,26 @@ public class EditSwapScreen extends Screen {
                 itemBBtn = Button.builder(Component.literal(pair.getItemBName()),
                         btn -> minecraft.setScreen(new ItemPickerScreen(EditSwapScreen.this, item -> {
                             pair.itemId2 = BuiltInRegistries.ITEM.getKey(item).toString();
-                            pair.targetSlot = SlotDetector.detectSlot(item);
+                            if (!pair.targetSlot.isHotbarLike()) pair.targetSlot = SlotDetector.detectSlot(item);
                             itemBBtn.setMessage(Component.literal(pair.getItemBName()));
                             slotBtn.setMessage(Component.literal(pair.targetSlot.getDisplayName()));
                             AutoSwapConfig.save();
                         }))).size(100, 20).build();
 
+                filterABtn = Button.builder(Component.literal(filterLabel(pair.filterA)),
+                        btn -> minecraft.setScreen(new FilterScreen(EditSwapScreen.this, pair.filterA, f -> {
+                            pair.filterA = f;
+                            AutoSwapConfig.save();
+                        }))).size(100, 14).build();
+
+                filterBBtn = Button.builder(Component.literal(filterLabel(pair.filterB)),
+                        btn -> minecraft.setScreen(new FilterScreen(EditSwapScreen.this, pair.filterB, f -> {
+                            pair.filterB = f;
+                            AutoSwapConfig.save();
+                        }))).size(100, 14).build();
+
                 slotBtn = Button.builder(Component.literal(pair.targetSlot.getDisplayName()), btn -> {
-                    pair.targetSlot = pair.targetSlot.next();
+                    pair.targetSlot = shiftHeld() ? pair.targetSlot.prev() : pair.targetSlot.next();
                     slotBtn.setMessage(Component.literal(pair.targetSlot.getDisplayName()));
                     AutoSwapConfig.save();
                 }).size(82, 20).build();
@@ -120,7 +152,7 @@ public class EditSwapScreen extends Screen {
                 Font font = getFont();
                 int x = getX(), ew = getWidth();
                 int y = getY();
-                int midY = y+(44-20)/2, iconY = y+(44-16)/2;
+                int midY = y+4, iconY = y+6;
                 if (hov) ctx.fill(x, y, x+ew, y+44, 0x18FFFFFF);
 
                 safeDrawItem(ctx, pair.itemId, x+2, iconY);
@@ -134,6 +166,10 @@ public class EditSwapScreen extends Screen {
                 safeDrawItem(ctx, pair.itemId2, bx, iconY);
                 itemBBtn.setX(bx+19); itemBBtn.setY(midY);
                 itemBBtn.extractRenderState(ctx, mouseX, mouseY, d);
+                filterABtn.setX(x+21); filterABtn.setY(y+27);
+                filterABtn.extractRenderState(ctx, mouseX, mouseY, d);
+                filterBBtn.setX(bx+19); filterBBtn.setY(y+27);
+                filterBBtn.extractRenderState(ctx, mouseX, mouseY, d);
                 int bEnd = bx+19+100;
                 int gw = font.width("→");
                 ctx.text(font, Component.literal("→"),
@@ -154,6 +190,8 @@ public class EditSwapScreen extends Screen {
             public boolean mouseClicked(MouseButtonEvent click, boolean consumed) {
                 if (itemABtn.mouseClicked(click, consumed)) return true;
                 if (itemBBtn.mouseClicked(click, consumed)) return true;
+                if (filterABtn.mouseClicked(click, consumed)) return true;
+                if (filterBBtn.mouseClicked(click, consumed)) return true;
                 if (slotBtn.mouseClicked(click, consumed)) return true;
                 if (deleteBtn.mouseClicked(click, consumed)) return true;
                 return false;

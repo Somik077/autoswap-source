@@ -55,17 +55,22 @@ public class AutoSwapConfigScreen extends Screen {
         addRenderableWidget(Button.builder(
                 ModTranslation.t("autoswap.screen.config.add"),
                 btn -> { AutoSwapConfig.getInstance().getEntries().add(new SwapEntry()); AutoSwapConfig.save(); swapList.reload(); }
-        ).bounds(width / 2 - 156, height - 24, 100, 20).build());
+        ).bounds(width / 2 - 162, height - 24, 78, 20).build());
+
+        addRenderableWidget(Button.builder(
+                ModTranslation.t("autoswap.screen.config.radial"),
+                btn -> minecraft.setScreen(new RadialSettingsScreen(this))
+        ).bounds(width / 2 - 80, height - 24, 78, 20).build());
 
         addRenderableWidget(Button.builder(
                 ModTranslation.t("autoswap.screen.config.settings"),
                 btn -> minecraft.setScreen(new SettingsScreen(this))
-        ).bounds(width / 2 - 50, height - 24, 100, 20).build());
+        ).bounds(width / 2 + 2, height - 24, 78, 20).build());
 
         addRenderableWidget(Button.builder(
                 ModTranslation.t("autoswap.screen.config.done"),
                 btn -> onClose()
-        ).bounds(width / 2 + 56, height - 24, 100, 20).build());
+        ).bounds(width / 2 + 84, height - 24, 78, 20).build());
     }
 
     private int tabWidth() {
