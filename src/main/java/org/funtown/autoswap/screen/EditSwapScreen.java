@@ -9,12 +9,15 @@ import net.minecraft.client.gui.widget.EntryListWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 
 import net.minecraft.client.gui.Click;
+import net.minecraft.client.util.InputUtil;
+import org.lwjgl.glfw.GLFW;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import org.funtown.autoswap.config.AutoSwapConfig;
+import org.funtown.autoswap.config.ItemFilter;
 import org.funtown.autoswap.config.ModTranslation;
 import org.funtown.autoswap.config.SwapEntry;
 import org.funtown.autoswap.config.SwapPair;
@@ -62,6 +65,19 @@ public class EditSwapScreen extends Screen {
     @Override
     public void close() { AutoSwapConfig.save(); assert client != null; client.setScreen(parent); }
 
+    private String filterLabel(ItemFilter f) {
+        String text = (f == null || f.isEmpty())
+                ? ModTranslation.get("autoswap.filter.none")
+                : "⚙ " + f.describe();
+        return textRenderer.trimToWidth(text, 92);
+    }
+
+    private boolean shiftHeld() {
+        if (client == null) return false;
+        return InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_LEFT_SHIFT)
+            || InputUtil.isKeyPressed(client.getWindow(), GLFW.GLFW_KEY_RIGHT_SHIFT);
+    }
+
     class PairListWidget extends EntryListWidget<PairListWidget.PairRow> {
 
         PairListWidget(MinecraftClient mc, int w, int h, int top, int itemH) {
@@ -81,7 +97,7 @@ public class EditSwapScreen extends Screen {
 
             private final SwapPair pair;
             private final int      pairIndex;
-            private ButtonWidget itemABtn, itemBBtn, slotBtn;
+            private ButtonWidget itemABtn, itemBBtn, slotBtn, filterABtn, filterBBtn;
             private final ButtonWidget deleteBtn;
 
             PairRow(SwapPair pair, int pairIndex) {
@@ -90,7 +106,7 @@ public class EditSwapScreen extends Screen {
                 itemABtn = ButtonWidget.builder(Text.literal(pair.getItemAName()),
                         btn -> client.setScreen(new ItemPickerScreen(EditSwapScreen.this, item -> {
                             pair.itemId = Registries.ITEM.getId(item).toString();
-                            pair.targetSlot = SlotDetector.detectSlot(item);
+                            if (!pair.targetSlot.isHotbarLike()) pair.targetSlot = SlotDetector.detectSlot(item);
                             itemABtn.setMessage(Text.literal(pair.getItemAName()));
                             slotBtn.setMessage(Text.literal(pair.targetSlot.getDisplayName()));
                             AutoSwapConfig.save();
@@ -99,14 +115,26 @@ public class EditSwapScreen extends Screen {
                 itemBBtn = ButtonWidget.builder(Text.literal(pair.getItemBName()),
                         btn -> client.setScreen(new ItemPickerScreen(EditSwapScreen.this, item -> {
                             pair.itemId2 = Registries.ITEM.getId(item).toString();
-                            pair.targetSlot = SlotDetector.detectSlot(item);
+                            if (!pair.targetSlot.isHotbarLike()) pair.targetSlot = SlotDetector.detectSlot(item);
                             itemBBtn.setMessage(Text.literal(pair.getItemBName()));
                             slotBtn.setMessage(Text.literal(pair.targetSlot.getDisplayName()));
                             AutoSwapConfig.save();
                         }))).size(100, 20).build();
 
+                filterABtn = ButtonWidget.builder(Text.literal(filterLabel(pair.filterA)),
+                        btn -> client.setScreen(new FilterScreen(EditSwapScreen.this, pair.filterA, f -> {
+                            pair.filterA = f;
+                            AutoSwapConfig.save();
+                        }))).size(100, 14).build();
+
+                filterBBtn = ButtonWidget.builder(Text.literal(filterLabel(pair.filterB)),
+                        btn -> client.setScreen(new FilterScreen(EditSwapScreen.this, pair.filterB, f -> {
+                            pair.filterB = f;
+                            AutoSwapConfig.save();
+                        }))).size(100, 14).build();
+
                 slotBtn = ButtonWidget.builder(Text.literal(pair.targetSlot.getDisplayName()), btn -> {
-                    pair.targetSlot = pair.targetSlot.next();
+                    pair.targetSlot = shiftHeld() ? pair.targetSlot.prev() : pair.targetSlot.next();
                     slotBtn.setMessage(Text.literal(pair.targetSlot.getDisplayName()));
                     AutoSwapConfig.save();
                 }).size(82, 20).build();
@@ -121,7 +149,7 @@ public class EditSwapScreen extends Screen {
             public void render(DrawContext ctx, int mouseX, int mouseY, boolean hov, float d) {
                 int x = getX(), ew = getWidth();
                 int y = getY();
-                int midY = y+(44-20)/2, iconY = y+(44-16)/2;
+                int midY = y+4, iconY = y+6;
                 if (hov) ctx.fill(x, y, x+ew, y+44, 0x18FFFFFF);
 
                 safeDrawItem(ctx, pair.itemId, x+2, iconY);
@@ -133,6 +161,8 @@ public class EditSwapScreen extends Screen {
                         x+121+(gapA-aw)/2, midY+5, 0xFFAAAAAA);
                 safeDrawItem(ctx, pair.itemId2, bx, iconY);
                 itemBBtn.setPosition(bx+19, midY); itemBBtn.render(ctx, mouseX, mouseY, d);
+                filterABtn.setPosition(x+21, y+27); filterABtn.render(ctx, mouseX, mouseY, d);
+                filterBBtn.setPosition(bx+19, y+27); filterBBtn.render(ctx, mouseX, mouseY, d);
                 int bEnd = bx+19+100;
                 int gw = textRenderer.getWidth("→");
                 ctx.drawTextWithShadow(client.textRenderer, Text.literal("→"),
@@ -154,10 +184,10 @@ public class EditSwapScreen extends Screen {
             }
 
             public List<? extends net.minecraft.client.gui.Element> children() {
-                return List.of(itemABtn, itemBBtn, slotBtn, deleteBtn);
+                return List.of(itemABtn, itemBBtn, filterABtn, filterBBtn, slotBtn, deleteBtn);
             }
             public List<? extends net.minecraft.client.gui.Selectable> selectableChildren() {
-                return List.of(itemABtn, itemBBtn, slotBtn, deleteBtn);
+                return List.of(itemABtn, itemBBtn, filterABtn, filterBBtn, slotBtn, deleteBtn);
             }
             public void appendNarrations(NarrationMessageBuilder b) {}
         }

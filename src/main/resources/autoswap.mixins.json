@@ -6,7 +6,8 @@
   "client": [
     "InputMixin",
     "InputAccessor",
-    "KeyboardInputMixin"
+    "KeyboardInputMixin",
+    "EntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1
